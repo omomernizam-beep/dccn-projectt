@@ -1,89 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AirChat</title>
+    <title>AirChat GitHub</title>
     <style>
-        body {
-            font-family: Arial;
-            background: #111827;
-            color: white;
-            text-align: center;
-        }
-
-        h1 {
-            margin: 20px;
-        }
-
-        #chatBox {
-            width: 80%;
-            height: 300px;
-            margin: auto;
-            background: #1f2937;
-            overflow-y: scroll;
-            padding: 10px;
-            border-radius: 10px;
-            text-align: left;
-        }
-
-        input {
-            padding: 10px;
-            width: 60%;
-        }
-
-        button {
-            padding: 10px;
-            background: #22c55e;
-            border: none;
-            cursor: pointer;
-        }
-
-        .msg {
-            margin: 5px;
-            padding: 8px;
-            background: #374151;
-            border-radius: 5px;
-        }
+        body { font-family: Arial; background:#111; color:white; text-align:center; }
+        #chat { height:300px; overflow:auto; background:#222; margin:20px; padding:10px; }
+        input { padding:10px; width:60%; }
+        button { padding:10px; }
     </style>
 </head>
 <body>
 
-<h1>💬 AirChat</h1>
+<h1>💬 AirChat (GitHub)</h1>
 
-<div id="chatBox"></div>
+<div id="chat"></div>
 
-<br>
-
-<input type="text" id="msgInput" placeholder="Type message...">
-<button onclick="sendMsg()">Send</button>
+<input id="msg" placeholder="Type message...">
+<button onclick="send()">Send</button>
 
 <script>
-let messages = [];
+const owner = "YOUR_USERNAME";
+const repo = "YOUR_REPO";
+const file = "messages.json";
+const token = "YOUR_TOKEN";
 
-function sendMsg() {
-    let input = document.getElementById("msgInput");
-    let text = input.value;
+async function loadMessages() {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${file}`);
+    const data = await res.json();
+    const content = JSON.parse(atob(data.content));
 
-    if (text === "") return;
+    let chat = document.getElementById("chat");
+    chat.innerHTML = "";
+
+    content.forEach(msg => {
+        chat.innerHTML += "<p>" + msg + "</p>";
+    });
+}
+
+async function send() {
+    let text = document.getElementById("msg").value;
+
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${file}`);
+    const data = await res.json();
+    let messages = JSON.parse(atob(data.content));
 
     messages.push(text);
-    displayMessages();
 
-    input.value = "";
-}
-
-function displayMessages() {
-    let box = document.getElementById("chatBox");
-    box.innerHTML = "";
-
-    messages.forEach(msg => {
-        let div = document.createElement("div");
-        div.className = "msg";
-        div.innerText = msg;
-        box.appendChild(div);
+    await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${file}`, {
+        method: "PUT",
+        headers: {
+            "Authorization": "token " + token,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            message: "update chat",
+            content: btoa(JSON.stringify(messages)),
+            sha: data.sha
+        })
     });
 
-    box.scrollTop = box.scrollHeight;
+    document.getElementById("msg").value = "";
+    loadMessages();
 }
+
+loadMessages();
+setInterval(loadMessages, 3000);
 </script>
 
 </body>
